@@ -1,25 +1,52 @@
-df = pd.read_csv("/content/IMDB_top_1000.csv")
-df = df[ ['Title', 'Genre' ]] .dropna()
+import seaborn as sns
+import pandas as pd
+
+df = pd.read_csv("/content/drive/MyDrive/IMDB_top_1000.csv")
+df
+!head -n 5 /content/drive/MyDrive/IMDB_top_1000.csv
+import pandas as pd
+import random
+
+# Load the movie data
+df = pd.read_csv("/content/drive/MyDrive/IMDB_top_1000.csv")
+
+# Clean the movie titles by removing rank and year
+df['Cleaned_Title'] = df['Title'].str.replace(r'\d+\.\s*', '', regex=True)  # Remove rank number
+df['Cleaned_Title'] = df['Cleaned_Title'].str.replace(r'\(\d{4}\)', '', regex=True)  # Remove year in parentheses
+df['Cleaned_Title'] = df['Cleaned_Title'].str.strip()  # Remove extra spaces
+
+# Function to recommend 5 shuffled movies in the same genre
 def recommend_movies(movie_title):
-movie_title = movie_title. lower()
-matched movie = None
-for title in df[ 'Title']:
-if movie_title in title.lower():
-matched movie = title
-break
-if not matched movie:
-return "Movie not found. Try another title."
-movie_genre = df[df['Title' ] == matched_movie] [ 'Genre' ] . values [0]
-similar_movies =
-for index, row in df.iterrows():
-if row[ 'Title'] != matched_movie: # Skip the movie itself
-if any(genre in row[ 'Genre'] for genre in movie_genre.split(', ')):
-similar_movies.append(row['Title'])
-top_5 = similar_movies[:5]
-result = f"Matched movie: {matched_movie}\n"
-result += "Top similar movies: \n"
-for i, title in enumerate(top_5, 1):
-result += f"{i}. {title}\n"
-return result
+    movie_title = movie_title.strip()
+
+    # Find the genre of the movie
+    matched_movie = df[df['Cleaned_Title'].str.lower() == movie_title.lower()]
+    if matched_movie.empty:
+        return "❌ Movie not found. Please try a different title."
+
+    # Get the genre of the matched movie
+    movie_genre = matched_movie.iloc[0]['Genre']
+
+    # Filter movies with the same genre (excluding the matched movie)
+    similar_movies = df[(df['Genre'].str.contains(movie_genre)) & (df['Cleaned_Title'].str.lower() != movie_title.lower())]
+
+    # Check if there are enough movies in the same genre
+    if similar_movies.shape[0] < 5:
+        shuffled_movies = similar_movies['Title'].tolist()  # Use all available movies if fewer than 5
+    else:
+        # Shuffle the similar movies and pick top 5
+        shuffled_movies = similar_movies.sample(n=5, random_state=42)['Title'].tolist()
+
+    if not shuffled_movies:
+        return "❌ No similar movies found in the same genre."
+
+    # Return the result
+    result = f"✅ Matched movie: {movie_title}\n🎬 Recommended movies in the same genre:\n"
+    for i, title in enumerate(shuffled_movies, 1):
+        result += f"{i}. {title}\n"
+
+    return result
+
+# Get the movie input from user
 movie = input("Enter a movie you like: ")
 print(recommend_movies(movie))
